@@ -1,0 +1,62 @@
+name: WASM
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-wasm:
+    name: Build WASM (Emscripten)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Meson and Ninja
+        run: pip install meson ninja
+
+      - name: Set up Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Verify Emscripten
+        run: emcc --version
+
+      - name: Configure (meson cross build)
+        run: |
+          sed "s|EMSDK:|${EMSDK}/|g" wasm_cross.txt > /tmp/wasm_cross.txt
+          meson setup builddir_wasm \
+            --cross-file /tmp/wasm_cross.txt \
+            -Dthread=false \
+            -Dmodule=false \
+            -Dcache=false \
+            -Dexample=false \
+            -Db_lto=true \
+            -Ddefault_library=static
+          cp ./test/wasm_test.html builddir_wasm/src/index.html
+
+      - name: Build
+        run: ninja -C builddir_wasm
+
+      - name: List outputs
+        run: ls -lrt builddir_wasm/src/rlottie-wasm.*
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rlottie-wasm
+          path: |
+            builddir_wasm/src/rlottie-wasm.js
+            builddir_wasm/src/rlottie-wasm.wasm
+            builddir_wasm/src/index.html
+          if-no-files-found: error
