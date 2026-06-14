@@ -135,6 +135,8 @@ constant or a `std::function<T(FrameInfo)>` callback.
 - **C++14** for the library; the public headers must stay **C++11**-compatible.
 - Symbol visibility is hidden by default; the exported ABI is pinned by `rlottie.expmap`
   (version script) on Linux. New public symbols must be added there.
-- Formatting is clang-format (`.clang-format`). The `format` script formats only the last
-  commit's diff: `git diff -U0 --no-color HEAD^ | clang-format-diff -i -p1`.
+- Formatting is clang-format (`.clang-format`). The `format.sh` script formats only the last
+  commit's diff: `git diff -U0 --no-color HEAD^ | clang-format-diff -i -p1`. (It must not be
+  named `format`: the build puts the project root on the include path, so a file named `format`
+  is picked up as the C++ `<format>` header and breaks compilation with newer libc++/libstdc++.)
 - The vector engine never includes lottie headers — keep that one-way dependency intact.
