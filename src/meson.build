@@ -41,9 +41,12 @@ if (cc.get_id() == 'emscripten')
 
   subdir('wasm')
 
+  # embind (emscripten/bind.h) requires C++17 or newer. Compile only this
+  # glue executable at C++17; librlottie itself stays C++14 (see CLAUDE.md).
   executable('rlottie-wasm',
               [],
               dependencies : [rlottie_dep, rlottie_wasm_dep],
+              override_options : ['cpp_std=c++17'],
             )
 endif
 
