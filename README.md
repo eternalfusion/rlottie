@@ -30,6 +30,7 @@ Here are small samples of the power of Lottie.
 	- [Test](#test)
 - [Demo](#demo)
 - [Previewing Lottie JSON Files](#previewing-lottie-json-files)
+- [WebAssembly (WASM)](#webassembly-wasm)
 - [Quick Start](#quick-start)
 - [Dynamic Property](#dynamic-property)
 - [Supported After Effects Features](#supported-after-effects-features)
@@ -113,6 +114,52 @@ lottie2gif [lottie file name]
 Please visit [rlottie online viewer](http://rlottie.com)
 
 [rlottie online viewer](http://rlottie.com) uses rlottie wasm library to render the resource locally in your browser. To test your JSON resource drag and drop it to the browser window.
+
+#
+## WebAssembly (WASM)
+
+rlottie ships a WebAssembly build with JavaScript bindings so you can render Lottie animations directly in the browser — no toolchain or local build required.
+
+### Prebuilt download
+
+Every push to `master` republishes a fresh build to the rolling [`latest`](https://github.com/eternalfusion/rlottie/releases/tag/latest) GitHub release. Grab the two artifacts and drop them next to your web page:
+
+- [`rlottie-wasm.js`](https://github.com/eternalfusion/rlottie/releases/download/latest/rlottie-wasm.js) — ES6 module glue (built with `MODULARIZE` + `EXPORT_ES6`)
+- [`rlottie-wasm.wasm`](https://github.com/eternalfusion/rlottie/releases/download/latest/rlottie-wasm.wasm) — the compiled engine
+
+### Usage
+
+The glue is an ES module that default-exports a factory returning the instantiated module. The `RlottieWasm` class loads a Lottie JSON string and renders frames into an RGBA pixel buffer you can blit straight onto a `<canvas>`:
+
+```html
+<canvas id="c" width="512" height="512"></canvas>
+<script type="module">
+  import createRlottieModule from "./rlottie-wasm.js";
+
+  const Module = await createRlottieModule();
+  const player = new Module.RlottieWasm();
+
+  // Load your own animation (otherwise a built-in sample is used).
+  player.load(jsonString);
+
+  const width = 512, height = 512;
+  const ctx = document.getElementById("c").getContext("2d");
+
+  for (let frame = 0; frame < player.frames(); frame++) {
+    // render() returns a view over the wasm heap: width*height*4 RGBA bytes.
+    const bytes = player.render(frame, width, height);
+    const image = new ImageData(new Uint8ClampedArray(bytes), width, height);
+    ctx.putImageData(image, 0, 0);
+    await new Promise(requestAnimationFrame);
+  }
+</script>
+```
+
+> The buffer returned by `render()` is a view into wasm memory and may be invalidated by later calls; copy it (as `new Uint8ClampedArray(bytes)` above does) before reuse.
+
+Besides `load`, `frames` and `render`, the binding exposes dynamic-property setters (`setFillColor`, `setStrokeColor`, `setFillOpacity`, `setStrokeOpacity`, `setStrokeWidth`, `setAnchor`, `setPosition`, `setScale`, `setRotation`, `setOpacity`) that mirror the [Dynamic Property](#dynamic-property) API. To build the module yourself instead, run `./wasm_build.sh` (needs the [Emscripten SDK](https://emscripten.org/)).
+
+[Back to contents](#contents)
 
 #
 ## Quick Start
